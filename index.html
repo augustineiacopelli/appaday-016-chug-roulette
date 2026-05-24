@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Chug Roulette — App 016</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #F5A623;
+    --amber: #C87D2A;
+    --dark-amber: #7A4A10;
+    --cream: #FFF3DC;
+    --dark: #1A0F00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--dark);
+    color: var(--cream);
+    font-family: 'Barlow', sans-serif;
+    display: flex;
+    flex-direction: column;
+    background-image:
+      radial-gradient(ellipse at top, #3D1F00 0%, var(--dark) 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px,
+        rgba(245,166,35,0.03) 40px, rgba(245,166,35,0.03) 41px);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(245,166,35,0.2);
+  }
+  .bib {
+    background: var(--gold); color: var(--dark);
+    font-family: 'Bebas Neue', sans-serif; font-size: 10px; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 3px; text-align: center; line-height: 1.4;
+  }
+  .bib .bib-num { display: block; font-size: 18px; line-height: 1; letter-spacing: 0; }
+  .title-block { text-align: center; }
+  .title-block h1 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--gold); line-height: 1; }
+  .title-block .subtitle { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--amber); }
+  .back-link { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--amber); text-decoration: none; opacity: 0.7; }
+
+  /* ── PLAYERS ── */
+  .players-section {
+    flex-shrink: 0;
+    padding: 10px 16px 0;
+  }
+  .players-label { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+  .players-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+  .player-tag {
+    background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.25);
+    color: var(--cream); font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600;
+    padding: 4px 9px; border-radius: 20px; display: flex; align-items: center; gap: 5px; transition: all 0.25s;
+  }
+  .player-tag.active { background: rgba(245,166,35,0.22); border-color: var(--gold); color: var(--gold); box-shadow: 0 0 8px rgba(245,166,35,0.25); }
+  .player-tag .turn-arrow { display: none; font-size: 11px; }
+  .player-tag.active .turn-arrow { display: inline; }
+  .player-tag .remove { font-size: 15px; line-height: 1; color: var(--amber); opacity: 0.5; cursor: pointer; }
+  .player-tag .remove:hover { opacity: 1; }
+
+  .add-player-btn {
+    background: transparent; border: 1px dashed rgba(245,166,35,0.4); color: var(--amber);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 1px;
+    padding: 4px 10px; border-radius: 20px; cursor: pointer; transition: all 0.2s;
+  }
+  .add-player-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .player-input-row { display: none; gap: 8px; margin-top: 6px; }
+  .player-input-row.visible { display: flex; }
+  .player-input {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(245,166,35,0.3);
+    color: var(--cream); font-family: 'Barlow', sans-serif; font-size: 16px;
+    padding: 5px 12px; border-radius: 6px; flex: 1; outline: none;
+  }
+  .player-input:focus { border-color: var(--gold); }
+  .player-input::placeholder { color: rgba(245,166,35,0.3); }
+  .confirm-btn {
+    background: var(--gold); color: var(--dark); border: none;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer; text-transform: uppercase;
+  }
+
+  /* ── NUDGE ── */
+  .nudge {
+    flex-shrink: 0;
+    padding: 6px 16px 0;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 12px; letter-spacing: 1px;
+    color: rgba(245,166,35,0.5); text-align: center; text-transform: uppercase;
+    transition: opacity 0.3s;
+  }
+  .nudge.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── WHEEL ── */
+  .wheel-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    min-height: 0;
+  }
+
+  .wheel-container {
+    position: relative;
+    /* size driven by JS to fill available space */
+  }
+  .wheel-pointer {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 10;
+    width: 0; height: 0;
+    border-left: 12px solid transparent; border-right: 12px solid transparent;
+    border-top: 24px solid var(--gold);
+    filter: drop-shadow(0 2px 6px rgba(245,166,35,0.6));
+  }
+  #wheel-canvas {
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--dark-amber), 0 0 0 8px rgba(245,166,35,0.15), 0 8px 40px rgba(0,0,0,0.6);
+    display: block; transition: opacity 0.3s;
+  }
+  #wheel-canvas.locked { opacity: 0.4; }
+  .wheel-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 40px; height: 40px; background: var(--dark); border: 3px solid var(--gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    z-index: 5; box-shadow: 0 0 12px rgba(245,166,35,0.4);
+  }
+
+  /* ── BUTTON ROW ── */
+  .btn-row {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px 16px;
+  }
+
+  .side-btn {
+    background: rgba(245,166,35,0.08);
+    border: 1px solid rgba(245,166,35,0.3);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 2px;
+    padding: 10px 14px;
+    border-radius: 6px; cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    white-space: nowrap;
+  }
+  .side-btn:hover { background: rgba(245,166,35,0.16); border-color: var(--gold); }
+  .side-btn .badge {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--gold); color: var(--dark);
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 10px;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+  }
+  .side-btn .badge.visible { display: flex; }
+
+  .spin-btn {
+    background: var(--gold); color: var(--dark); border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 4px;
+    padding: 12px 36px; border-radius: 6px; cursor: pointer;
+    transition: all 0.15s; box-shadow: 0 4px 20px rgba(245,166,35,0.35);
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .spin-btn::after {
+    content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.4s;
+  }
+  .spin-btn:hover:not(:disabled) { background: #FFB83A; transform: translateY(-2px); box-shadow: 0 6px 28px rgba(245,166,35,0.5); }
+  .spin-btn:hover:not(:disabled)::after { left: 200%; }
+  .spin-btn:active:not(:disabled) { transform: translateY(0); }
+  .spin-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ── RESULT ── */
+  .result-area {
+    flex-shrink: 0;
+    padding: 0 16px 10px;
+  }
+  .result-card {
+    background: linear-gradient(135deg, rgba(245,166,35,0.1), rgba(200,125,42,0.06));
+    border: 1px solid rgba(245,166,35,0.25); border-radius: 10px;
+    padding: 16px 20px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; transition: all 0.3s; min-height: 90px;
+  }
+  .result-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .result-card.revealed::before { opacity: 1; }
+  .result-category { font-family: 'Bebas Neue', sans-serif; font-size: 12px; letter-spacing: 4px; color: var(--gold); margin-bottom: 2px; opacity: 0; transform: translateY(6px); transition: all 0.35s 0.05s; }
+  .result-player { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--cream); margin-bottom: 6px; opacity: 0; transform: translateY(6px); transition: all 0.35s 0.15s; }
+  .result-challenge { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: var(--cream); line-height: 1.3; opacity: 0; transform: translateY(6px); transition: all 0.35s 0.28s; }
+  .result-card.revealed .result-category,
+  .result-card.revealed .result-player,
+  .result-card.revealed .result-challenge { opacity: 1; transform: translateY(0); }
+  .result-placeholder { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,166,35,0.3); }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.78); z-index: 200;
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: #1F1000;
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 16px 16px 0 0;
+    width: 100%; max-width: 520px;
+    max-height: 80vh;
+    display: flex; flex-direction: column;
+    transform: translateY(24px); transition: transform 0.28s cubic-bezier(0.34,1.2,0.64,1);
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid rgba(245,166,35,0.15);
+  }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--gold); }
+  .modal-subtitle { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,166,35,0.4); margin-top: 1px; }
+  .modal-close { background: none; border: none; color: var(--amber); font-size: 22px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; line-height: 1; padding: 4px 8px; }
+  .modal-close:hover { opacity: 1; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px 20px; }
+
+  /* Segment guide modal */
+  .seg-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  .seg-swatch { width: 40px; height: 40px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .seg-label { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 2px; color: var(--gold); margin-bottom: 2px; }
+  .seg-desc { font-family: 'Barlow', sans-serif; font-size: 13px; color: rgba(255,243,220,0.6); line-height: 1.45; }
+
+  /* Rules modal */
+  .rules-fixed-section { margin-bottom: 16px; }
+  .rules-section-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 10px; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(245,166,35,0.4); margin-bottom: 8px;
+  }
+  .rule-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    font-family: 'Barlow', sans-serif; font-size: 13px; color: rgba(255,243,220,0.7);
+    line-height: 1.45; padding: 6px 0; border-bottom: 1px solid rgba(245,166,35,0.08);
+  }
+  .rule-item:last-child { border-bottom: none; }
+  .rule-bullet { color: var(--gold); font-size: 16px; line-height: 1.3; flex-shrink: 0; }
+
+  .added-rules-section { margin-top: 4px; }
+  .added-rule-item {
+    display: flex; gap: 10px; align-items: flex-start; justify-content: space-between;
+    font-family: 'Barlow', sans-serif; font-size: 13px; color: rgba(255,243,220,0.7);
+    line-height: 1.45; padding: 6px 0; border-bottom: 1px solid rgba(245,166,35,0.08);
+  }
+  .added-rule-item:last-child { border-bottom: none; }
+  .added-rule-by { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); margin-top: 2px; }
+  .remove-rule-btn {
+    background: none; border: none; color: var(--amber); font-size: 16px;
+    cursor: pointer; opacity: 0.4; flex-shrink: 0; padding: 0 4px; transition: opacity 0.2s;
+  }
+  .remove-rule-btn:hover { opacity: 0.9; }
+
+  .no-added-rules { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: rgba(245,166,35,0.25); text-align: center; padding: 12px 0; }
+
+  .clear-rules-btn {
+    display: block; width: 100%; margin-top: 14px;
+    background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.2);
+    color: rgba(245,166,35,0.5); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 8px; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+  }
+  .clear-rules-btn:hover { border-color: rgba(245,166,35,0.5); color: var(--gold); }
+
+  /* Race log modal */
+  .log-empty { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: rgba(245,166,35,0.25); text-align: center; padding: 20px 0; }
+  .log-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid rgba(245,166,35,0.08); }
+  .log-item:last-child { border-bottom: none; }
+  .log-round { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 1px; color: rgba(245,166,35,0.4); min-width: 28px; flex-shrink: 0; }
+  .log-cat { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1px; color: var(--gold); min-width: 44px; flex-shrink: 0; }
+  .log-text { font-family: 'Barlow', sans-serif; font-size: 13px; color: rgba(255,243,220,0.6); line-height: 1.4; }
+  .log-text strong { color: rgba(255,243,220,0.85); }
+
+  /* ── CONFETTI ── */
+  .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; overflow: hidden; }
+  .confetti-piece { position: absolute; width: 8px; height: 8px; opacity: 0; animation: confettiFall 1.5s ease-out forwards; }
+  @keyframes confettiFall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+
+  /* ── BUBBLES ── */
+  .bubbles { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; pointer-events: none; overflow: hidden; opacity: 0.05; }
+  @keyframes rise { 0% { transform: translateY(60px) scale(0.5); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-10px) scale(1); opacity: 0; } }
+  .bubble { position: absolute; bottom: 0; background: var(--gold); border-radius: 50%; animation: rise linear infinite; }
+</style>
+</head>
+<body>
+
+<div class="bubbles" id="bubbles"></div>
+<div class="confetti-container" id="confetti"></div>
+
+<!-- ── SEGMENT GUIDE MODAL ── -->
+<div class="modal-overlay" id="segModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Segment Guide</div>
+        <div class="modal-subtitle">What each wheel segment means</div>
+      </div>
+      <button class="modal-close" data-close="segModalOverlay">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(245,166,35,0.15)">🍺</div><div><div class="seg-label">Chug</div><div class="seg-desc">Drink continuously without stopping until the challenge says you can. No pausing, no putting it down.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(232,146,15,0.15)">🎯</div><div><div class="seg-label">Dare</div><div class="seg-desc">A social challenge or physical task. Complete it or take the drink penalty instead.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(217,127,10,0.15)">📋</div><div><div class="seg-label">Rule</div><div class="seg-desc">You make a rule that applies to everyone for the rest of the session. It gets logged under Rules. Anyone who breaks it drinks.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(200,125,42,0.15)">🎁</div><div><div class="seg-label">Give</div><div class="seg-desc">You distribute sips to other players however you choose. You don't drink.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(184,105,26,0.15)">🔄</div><div><div class="seg-label">Swap</div><div class="seg-desc">Exchange drinks with another player. What goes around comes around.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(168,92,16,0.15)">💧</div><div><div class="seg-label">Drink</div><div class="seg-desc">Simple — take a sip or follow the exact drinking instruction on the challenge card.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(245,166,35,0.15)">🏃</div><div><div class="seg-label">Race</div><div class="seg-desc">Beer Mile tribute. First person to finish their drink wins; everyone else drinks again.</div></div></div>
+      <div class="seg-row"><div class="seg-swatch" style="background:rgba(220,133,16,0.15)">🃏</div><div><div class="seg-label">Wild</div><div class="seg-desc">Anything goes. The active player invents their own challenge — no limits, group must comply.</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── RULES MODAL ── -->
+<div class="modal-overlay" id="rulesModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Rules</div>
+        <div class="modal-subtitle">House rules + session rules</div>
+      </div>
+      <button class="modal-close" data-close="rulesModalOverlay">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rules-fixed-section">
+        <div class="rules-section-label">House Rules</div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>Add at least one runner before spinning. The wheel will not spin with an empty lineup.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>The wheel cycles through all runners in order. Everyone gets equal turns.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>The active runner must complete the challenge before the next spin happens.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>RULE spins create session rules logged here. They stay active until the session ends.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>WILD spins let the active runner invent any challenge. The group cannot veto.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>Anyone who breaks a session rule drinks immediately, no exceptions.</span></div>
+        <div class="rule-item"><span class="rule-bullet">▸</span><span>Drink responsibly. Know your limits. This is a game, not a competition.</span></div>
+      </div>
+      <div class="added-rules-section">
+        <div class="rules-section-label">Session Rules <span id="sessionRuleCount" style="color:var(--gold)"></span></div>
+        <div id="addedRulesList"></div>
+        <button class="clear-rules-btn" id="clearRulesBtn">End Session &amp; Clear Rules</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── RACE LOG MODAL ── -->
+<div class="modal-overlay" id="logModalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Race Log</div>
+        <div class="modal-subtitle">All spins this session</div>
+      </div>
+      <button class="modal-close" data-close="logModalOverlay">×</button>
+    </div>
+    <div class="modal-body" id="logModalBody"></div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="bib">APP<span class="bib-num">016</span></div>
+  <div class="title-block">
+    <h1>Chug Roulette</h1>
+    <div class="subtitle">Beer Mile Edition</div>
+  </div>
+  <a href="https://augustineiacopelli.github.io" class="back-link">← All Apps</a>
+</header>
+
+<!-- ── PLAYERS ── -->
+<section class="players-section">
+  <div class="players-label">Runners</div>
+  <div class="players-row" id="playersRow">
+    <button class="add-player-btn" id="addPlayerBtn">+ Add Runner</button>
+  </div>
+  <div class="player-input-row" id="playerInputRow">
+    <input type="text" class="player-input" id="playerInput" placeholder="Name..." maxlength="20">
+    <button class="confirm-btn" id="confirmPlayerBtn">Add</button>
+  </div>
+</section>
+
+<!-- ── NUDGE ── -->
+<div class="nudge hidden" id="nudge">Add at least one runner to start the race</div>
+
+<!-- ── WHEEL ── -->
+<section class="wheel-area" id="wheelArea">
+  <div class="wheel-container" id="wheelContainer">
+    <div class="wheel-pointer"></div>
+    <canvas id="wheel-canvas" class="locked"></canvas>
+    <div class="wheel-center">🍺</div>
+  </div>
+</section>
+
+<!-- ── BUTTON ROW ── -->
+<div class="btn-row">
+  <button class="side-btn" id="rulesBtn">
+    📋 Rules
+    <span class="badge" id="rulesBadge"></span>
+  </button>
+  <button class="spin-btn" id="spinBtn" disabled>SPIN</button>
+  <button class="side-btn" id="logBtn">
+    🏁 Log
+    <span class="badge" id="logBadge"></span>
+  </button>
+</div>
+
+<!-- ── RESULT ── -->
+<section class="result-area">
+  <div class="result-card" id="resultCard">
+    <div class="result-placeholder">Add runners, then spin</div>
+  </div>
+</section>
+
+<script>
+const SEGMENT_LABELS = ['CHUG','DARE','RULE','GIVE','SWAP','DRINK','RACE','WILD'];
+const SEGMENT_COLORS = ['#F5A623','#E8920F','#D97F0A','#C87D2A','#B8691A','#A85C10','#F0971E','#DC8510'];
+const NUM_SEGMENTS = 8;
+
+const CHALLENGES = {
+  CHUG: [
+    "Chug for 5 seconds straight. No stopping.",
+    "Finish your drink before the next person speaks.",
+    "Chug a full lap — drain at least a quarter of your drink.",
+    "DNF penalty: finish your whole drink right now.",
+  ],
+  DARE: [
+    "The group votes: you drink double or you dare. Majority rules.",
+    "Name 5 beers in 5 seconds or take 3 sips.",
+    "Guess the next challenge out loud. Wrong? Drink.",
+    "Do 10 jumping jacks or finish your drink.",
+  ],
+  RULE: [
+    "New rule: no one can say anyone's first name this round. Violators drink.",
+    "New rule: everyone must drink with their left hand only. Slip up and drink.",
+    "New rule: no putting your drink on the table. It stays in hand or you drink.",
+    "New rule: anyone who laughs takes a sip.",
+  ],
+  GIVE: [
+    "Give out 3 sips however you want. You don't drink.",
+    "Give everyone at the table one sip. You're generous like that.",
+    "Pick two people to each take 2 sips. You stay dry.",
+    "Give your biggest sip to whoever ran a race most recently.",
+  ],
+  SWAP: [
+    "Swap drinks with the person to your left.",
+    "Trade drinks with whoever has the most left in their glass.",
+    "Beer exchange: swap with whoever you choose. Choose wisely.",
+    "Switch drinks with the person directly across from you.",
+  ],
+  DRINK: [
+    "Take a sip for every year older than 21 you are.",
+    "Everyone points at the worst drinker at the table. That person drinks.",
+    "Last person to touch their nose takes 2 sips.",
+    "Take 2 sips and pass your drink one seat to the left.",
+    "Waterfall — everyone drinks until you stop.",
+  ],
+  RACE: [
+    "Sprint lap: first person to finish their drink wins. Everyone else drinks again.",
+    "Mile marker — everyone drinks once for every person playing.",
+    "The mile clock is running. Everyone drinks simultaneously for 3 seconds.",
+    "Down-the-line race: each person drinks in order starting with you. Slowest drinks again.",
+  ],
+  WILD: [
+    "Wild card: invent your own challenge right now. Group must comply — no vetoes.",
+    "You're the race director. Design a custom challenge for the full group.",
+    "Wild card: anything goes. Your call. Your rules. Go.",
+    "The group makes a challenge for YOU. Majority vote on what it is.",
+  ],
+};
+
+// State
+let players = [];
+let spinning = false;
+let currentAngle = 0;
+let roundCount = 0;
+let history = [];
+let addedRules = [];
+let playerIndex = 0;
+let wheelSize = 260;
+
+// Elements
+const canvas = document.getElementById('wheel-canvas');
+const ctx = canvas.getContext('2d');
+const spinBtn = document.getElementById('spinBtn');
+const resultCard = document.getElementById('resultCard');
+const playersRow = document.getElementById('playersRow');
+const nudge = document.getElementById('nudge');
+const rulesBtn = document.getElementById('rulesBtn');
+const logBtn = document.getElementById('logBtn');
+const rulesBadge = document.getElementById('rulesBadge');
+const logBadge = document.getElementById('logBadge');
+const addedRulesList = document.getElementById('addedRulesList');
+const sessionRuleCount = document.getElementById('sessionRuleCount');
+const logModalBody = document.getElementById('logModalBody');
+const clearRulesBtn = document.getElementById('clearRulesBtn');
+
+// ── WHEEL SIZING ──
+function sizeWheel() {
+  const area = document.getElementById('wheelArea');
+  const available = Math.min(area.clientWidth - 32, area.clientHeight - 20);
+  wheelSize = Math.max(180, Math.min(available, 300));
+  canvas.width = wheelSize;
+  canvas.height = wheelSize;
+  const container = document.getElementById('wheelContainer');
+  container.style.width = wheelSize + 'px';
+  container.style.height = wheelSize + 'px';
+  drawWheel(currentAngle);
+}
+
+window.addEventListener('resize', sizeWheel);
+// Run after fonts load
+window.addEventListener('load', sizeWheel);
+setTimeout(sizeWheel, 100);
+
+// ── DRAW WHEEL ──
+function drawWheel(angle) {
+  ctx.clearRect(0, 0, wheelSize, wheelSize);
+  const cx = wheelSize / 2, cy = wheelSize / 2, r = wheelSize / 2 - 2;
+  const segAngle = (2 * Math.PI) / NUM_SEGMENTS;
+
+  for (let i = 0; i < NUM_SEGMENTS; i++) {
+    const start = angle + i * segAngle;
+    const end = start + segAngle;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = SEGMENT_COLORS[i];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(26,15,0,0.4)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + segAngle / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(26,15,0,0.65)';
+    const fontSize = Math.max(9, Math.floor(wheelSize * 0.038));
+    ctx.font = `bold ${fontSize}px "Barlow Condensed"`;
+    ctx.fillText(SEGMENT_LABELS[i], r - Math.floor(wheelSize * 0.04), 4);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(26,15,0,0.3)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+// ── BUBBLES ──
+const bubblesEl = document.getElementById('bubbles');
+for (let i = 0; i < 10; i++) {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  const size = 8 + Math.random() * 18;
+  b.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*4}s;`;
+  bubblesEl.appendChild(b);
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+rulesBtn.addEventListener('click', () => { renderRulesModal(); openModal('rulesModalOverlay'); });
+logBtn.addEventListener('click', () => { renderLogModal(); openModal('logModalOverlay'); });
+document.getElementById('segModalOverlay'); // exists for future use
+
+// ── GAME STATE ──
+function updateGameState() {
+  const hasPlayers = players.length > 0;
+  spinBtn.disabled = !hasPlayers || spinning;
+  canvas.classList.toggle('locked', !hasPlayers);
+  nudge.classList.toggle('hidden', hasPlayers);
+  if (!hasPlayers) {
+    resultCard.innerHTML = '<div class="result-placeholder">Add runners, then spin</div>';
+    resultCard.classList.remove('revealed');
+  }
+}
+
+function renderPlayers() {
+  const tags = playersRow.querySelectorAll('.player-tag');
+  tags.forEach(t => t.remove());
+  players.forEach((name, i) => {
+    const tag = document.createElement('div');
+    const isActive = players.length > 0 && i === playerIndex % players.length;
+    tag.className = 'player-tag' + (isActive ? ' active' : '');
+    tag.innerHTML = `<span class="turn-arrow">▶</span>${name}<span class="remove" data-index="${i}">×</span>`;
+    tag.querySelector('.remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(e.target.dataset.index);
+      players.splice(idx, 1);
+      if (players.length > 0 && playerIndex >= players.length) playerIndex = 0;
+      renderPlayers();
+      updateGameState();
+    });
+    playersRow.insertBefore(tag, addPlayerBtn);
+  });
+  updateGameState();
+}
+
+const addPlayerBtn = document.getElementById('addPlayerBtn');
+const playerInputRow = document.getElementById('playerInputRow');
+const playerInput = document.getElementById('playerInput');
+const confirmPlayerBtn = document.getElementById('confirmPlayerBtn');
+
+addPlayerBtn.addEventListener('click', () => { playerInputRow.classList.add('visible'); playerInput.focus(); });
+
+function addPlayer() {
+  const name = playerInput.value.trim();
+  if (name && players.length < 10) { players.push(name); renderPlayers(); }
+  playerInput.value = '';
+  playerInputRow.classList.remove('visible');
+}
+confirmPlayerBtn.addEventListener('click', addPlayer);
+playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+
+// ── RULES ──
+function renderRulesModal() {
+  sessionRuleCount.textContent = addedRules.length > 0 ? `(${addedRules.length})` : '';
+  if (addedRules.length === 0) {
+    addedRulesList.innerHTML = '<div class="no-added-rules">No session rules yet — spin a Rule!</div>';
+  } else {
+    addedRulesList.innerHTML = addedRules.map((r, i) => `
+      <div class="added-rule-item">
+        <div>
+          <div>${r.text}</div>
+          <div class="added-rule-by">Set by ${r.player} · Round #${r.round}</div>
+        </div>
+        <button class="remove-rule-btn" data-rule-index="${i}">×</button>
+      </div>
+    `).join('');
+    addedRulesList.querySelectorAll('.remove-rule-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        addedRules.splice(parseInt(btn.dataset.ruleIndex), 1);
+        updateRulesBadge();
+        renderRulesModal();
+      });
+    });
+  }
+}
+
+function updateRulesBadge() {
+  rulesBadge.textContent = addedRules.length;
+  rulesBadge.classList.toggle('visible', addedRules.length > 0);
+}
+
+clearRulesBtn.addEventListener('click', () => {
+  if (addedRules.length === 0) return;
+  addedRules = [];
+  updateRulesBadge();
+  renderRulesModal();
+});
+
+// ── LOG ──
+function renderLogModal() {
+  if (history.length === 0) {
+    logModalBody.innerHTML = '<div class="log-empty">No spins yet this session</div>';
+  } else {
+    logModalBody.innerHTML = history.map(e => `
+      <div class="log-item">
+        <span class="log-round">#${e.round}</span>
+        <span class="log-cat">${e.category}</span>
+        <span class="log-text"><strong>${e.player}</strong> — ${e.challenge}</span>
+      </div>
+    `).join('');
+  }
+}
+
+function updateLogBadge() {
+  logBadge.textContent = history.length;
+  logBadge.classList.toggle('visible', history.length > 0);
+}
+
+// ── SPIN ──
+function getWinningSegment(finalAngle) {
+  const segAngle = (2 * Math.PI) / NUM_SEGMENTS;
+  const pointerAngle = -Math.PI / 2;
+  let offset = ((pointerAngle - finalAngle) % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+  return Math.floor(offset / segAngle) % NUM_SEGMENTS;
+}
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  const colors = ['#F5A623','#FFF3DC','#C87D2A','#FFFFFF','#E8920F'];
+  for (let i = 0; i < 36; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.cssText = `left:${Math.random()*100}%;top:30%;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'0'};animation-delay:${Math.random()*0.3}s;animation-duration:${1+Math.random()*0.8}s;transform:scale(${0.5+Math.random()});`;
+    container.appendChild(piece);
+    setTimeout(() => piece.remove(), 2000);
+  }
+}
+
+spinBtn.addEventListener('click', () => {
+  if (spinning || players.length === 0) return;
+  spinning = true;
+  spinBtn.disabled = true;
+
+  resultCard.classList.remove('revealed');
+  resultCard.innerHTML = '<div class="result-placeholder">Spinning…</div>';
+
+  const totalRotation = (5 + Math.random() * 5) * 2 * Math.PI + Math.random() * 2 * Math.PI;
+  const duration = 3500 + Math.random() * 1000;
+  const startAngle = currentAngle;
+  const startTime = performance.now();
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    currentAngle = startAngle + totalRotation * easeOut(progress);
+    drawWheel(currentAngle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      spinBtn.disabled = false;
+      roundCount++;
+
+      const segIndex = getWinningSegment(currentAngle);
+      const segLabel = SEGMENT_LABELS[segIndex];
+      const pool = CHALLENGES[segLabel];
+      const challenge = pool[Math.floor(Math.random() * pool.length)];
+      const currentPlayer = players[playerIndex % players.length];
+
+      playerIndex++;
+      renderPlayers();
+
+      // If RULE segment, log it to session rules
+      if (segLabel === 'RULE') {
+        addedRules.push({ text: challenge, player: currentPlayer, round: roundCount });
+        updateRulesBadge();
+      }
+
+      resultCard.innerHTML = `
+        <div class="result-category">${segLabel}</div>
+        <div class="result-player">${currentPlayer}</div>
+        <div class="result-challenge">${challenge}</div>
+      `;
+      setTimeout(() => resultCard.classList.add('revealed'), 50);
+      launchConfetti();
+
+      history.unshift({ round: roundCount, player: currentPlayer, category: segLabel, challenge });
+      updateLogBadge();
+    }
+  }
+
+  requestAnimationFrame(animate);
+});
+
+// ── INIT ──
+updateGameState();
+sizeWheel();
+</script>
+</body>
+</html>
